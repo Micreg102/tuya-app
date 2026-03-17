@@ -2,6 +2,9 @@ package com.tuya.open.spring.boot.sample.ability.model;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import java.util.List;
+import java.util.Map;
+
 
 @Data
 @AllArgsConstructor
@@ -12,11 +15,13 @@ public class Device {
     String gatewayId; // 网关 ID, 非网关子设备时为空
     String nodeId; // 节点 ID, 非网关子设备时为空
     String uuid; // 设备 UUID
+
     String category; // 产品品类
     String categoryName; // 产品品类名称
     String name; // 设备名称
     String productId; // 产品 ID
     String productName; // 产品名称
+    List<Map<String, Object>> status;
     String localKey; // 密钥
     Boolean sub; // 是否为子设备
     String assetId; // 资产 ID

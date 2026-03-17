@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-
+@CrossOrigin
 @RestController
 @RequestMapping("/devices")
 public class DeviceController {
@@ -24,5 +24,27 @@ public class DeviceController {
     public Boolean command(@PathVariable("device_id") String deviceId, @RequestBody List<Map<String, Object>> commands) {
         return deviceService.command(deviceId, commands);
     }
+    @GetMapping("/all")
+    public List<Device> getAll() {
+        return deviceService.getAllDevices();
+    }
+    @Autowired
+    private com.tuya.open.spring.boot.sample.repository.TemperatureRepository temperatureRepository;
 
+    @CrossOrigin
+    @GetMapping("/{deviceId}/history")
+    public List<com.tuya.open.spring.boot.sample.ability.model.TemperatureRecord> getHistory(@PathVariable String deviceId) {
+        return temperatureRepository.findTop100ByDeviceIdOrderByTimestampDesc(deviceId);
+    }
+    @GetMapping("/test-db")
+    public String testDb() {
+        com.tuya.open.spring.boot.sample.ability.model.TemperatureRecord test =
+                com.tuya.open.spring.boot.sample.ability.model.TemperatureRecord.builder()
+                        .deviceId("test-device")
+                        .temperature(22.5)
+                        .timestamp(java.time.LocalDateTime.now())
+                        .build();
+        temperatureRepository.save(test);
+        return "Zapisano testowy rekord!";
+    }
 }

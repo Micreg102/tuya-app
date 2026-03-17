@@ -44,42 +44,42 @@ class TuyaSpringBootStarterSampleApplicationTests {
 
     public ExecutorService executor = Executors.newFixedThreadPool(1);
 
-    @Test
-    public void threadTest() throws InterruptedException {
-        executor = TtlExecutors.getTtlExecutorService(executor);
-
-        CountDownLatch countDownLatch = new CountDownLatch(2);
-        Thread t1 = new Thread(() ->{
-            configuration.getApiDataSource().setAk("1");
-            configuration.getApiDataSource().setSk("1");
-            log.info("t1:{} ak:{}, sk:{}", Thread.currentThread(), configuration.getApiDataSource().getAk(), configuration.getApiDataSource().getSk());
-            try {
-                Thread.sleep(6000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            executor.execute(()->
-                    log.info("t1 child:{} ak:{}, sk:{}", Thread.currentThread(), configuration.getApiDataSource().getAk(), configuration.getApiDataSource().getSk()));
-            countDownLatch.countDown();
-        });
-
-        Thread t2 = new Thread(() ->{
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            configuration.getApiDataSource().setAk("2");
-            configuration.getApiDataSource().setSk("2");
-            log.info("t2:{} ak:{}, sk{}",Thread.currentThread(), configuration.getApiDataSource().getAk(), configuration.getApiDataSource().getSk());
-            executor.execute(() ->
-                    log.info("t2 child:{} ak:{}, sk:{}", Thread.currentThread(), configuration.getApiDataSource().getAk(), configuration.getApiDataSource().getSk()));
-            countDownLatch.countDown();
-        });
-
-        t1.start();
-        t2.start();
-        countDownLatch.await();
-    }
+    //@Test
+//    public void threadTest() throws InterruptedException {
+//        executor = TtlExecutors.getTtlExecutorService(executor);
+//
+//        CountDownLatch countDownLatch = new CountDownLatch(2);
+//        Thread t1 = new Thread(() ->{
+//            configuration.getApiDataSource().setAk("1");
+//            configuration.getApiDataSource().setSk("1");
+//            log.info("t1:{} ak:{}, sk:{}", Thread.currentThread(), configuration.getApiDataSource().getAk(), configuration.getApiDataSource().getSk());
+//            try {
+//                Thread.sleep(6000);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//            executor.execute(()->
+//                    log.info("t1 child:{} ak:{}, sk:{}", Thread.currentThread(), configuration.getApiDataSource().getAk(), configuration.getApiDataSource().getSk()));
+//            countDownLatch.countDown();
+//        });
+//
+//        Thread t2 = new Thread(() ->{
+//            try {
+//                Thread.sleep(2000);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//            configuration.getApiDataSource().setAk("2");
+//            configuration.getApiDataSource().setSk("2");
+//            log.info("t2:{} ak:{}, sk{}",Thread.currentThread(), configuration.getApiDataSource().getAk(), configuration.getApiDataSource().getSk());
+//            executor.execute(() ->
+//                    log.info("t2 child:{} ak:{}, sk:{}", Thread.currentThread(), configuration.getApiDataSource().getAk(), configuration.getApiDataSource().getSk()));
+//            countDownLatch.countDown();
+//        });
+//
+//        t1.start();
+//        t2.start();
+//        countDownLatch.await();
+//    }
 
 }

@@ -20,12 +20,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class TuyaMessageListener {
 
-//    @EventListener
+    @EventListener
     public void updateStatusEvent(StatusReportMessage message) {
         log.info("StatusReport event happened: {}", message);
     }
 
-//    @EventListener
+   @EventListener
     public void nameUpdateMessage(NameUpdateMessage message) {
         log.info("NameUpdate event happened: {}", message);
     }

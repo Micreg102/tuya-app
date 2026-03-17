@@ -47,7 +47,7 @@ public class DevicePropertyMessage extends BaseTuyaMessage {
     }
 
     @Getter @Setter
-    class PropertyItem implements Serializable {
+    public static class PropertyItem implements Serializable {
 
         @Serial
         private static final long serialVersionUID = -5316969945618066530L;
