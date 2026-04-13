@@ -1,4 +1,4 @@
-package com.tuya.open.spring.boot.sample.web;
+package com.tuya.open.spring.boot.sample.controller;
 
 import com.tuya.open.spring.boot.sample.service.SIService;
 import org.springframework.beans.factory.annotation.Autowired;

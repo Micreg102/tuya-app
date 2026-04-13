@@ -8,10 +8,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @ConnectorScan(basePackages = "com.tuya.open.spring.boot.sample.ability.api")
 @EnableMessaging(msgPaths = {"com.tuya.open.spring.boot.sample.ability.messaging.msg"})
 @SpringBootApplication
-public class TuyaSpringBootStarterSampleApplication {
+public class SmartHomeApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(TuyaSpringBootStarterSampleApplication.class, args);
+        SpringApplication.run(SmartHomeApplication.class, args);
     }
 
 }

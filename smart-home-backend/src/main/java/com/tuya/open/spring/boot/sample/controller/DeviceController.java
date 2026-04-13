@@ -1,4 +1,4 @@
-package com.tuya.open.spring.boot.sample.web;
+package com.tuya.open.spring.boot.sample.controller;
 
 import com.tuya.open.spring.boot.sample.ability.model.Device;
 import com.tuya.open.spring.boot.sample.service.DeviceService;

@@ -11,7 +11,7 @@
         <module>tuya-api</module>
         <module>tuya-messaging</module>
         <module>tuya-common</module>
-        <module>tuya-spring-boot-starter</module>
+        <module>smart-home-backend</module>
     </modules>
 
     <properties>

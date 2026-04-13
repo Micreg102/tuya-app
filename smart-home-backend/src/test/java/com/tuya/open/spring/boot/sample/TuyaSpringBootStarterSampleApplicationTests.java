@@ -1,6 +1,5 @@
 package com.tuya.open.spring.boot.sample;
 
-import com.alibaba.ttl.threadpool.TtlExecutors;
 import com.tuya.connector.api.config.Configuration;
 import com.tuya.connector.open.messaging.autoconfig.MessageProperties;
 import com.tuya.connector.spring.boot.autoconfigure.ConnectorProperties;
@@ -17,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
-@SpringBootTest(classes = {TuyaSpringBootStarterSampleApplication.class})
+@SpringBootTest(classes = {SmartHomeApplication.class})
 class TuyaSpringBootStarterSampleApplicationTests {
 
     @Autowired
