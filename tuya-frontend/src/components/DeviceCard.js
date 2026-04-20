@@ -136,56 +136,73 @@ const DeviceCard = ({ deviceId, initialData }) => {
     };
 
     return (
-        <div className={`card ${smokeAlarm ? 'smoke-alarm-bg' : isSmokeSensor ? 'smoke-normal-bg' : 'standard-card'} ${!data.online ? 'offline' : ''}`}>
-            <div className="card-header">
-                <span className="device-name">{data.name}</span>
-                <div className="header-icons">
+        <div className={`aspect-square p-4 rounded-xl shadow-sm border transition-all duration-300 hover:shadow-md flex flex-col justify-between ${
+            smokeAlarm ? 'bg-red-500 text-white border-red-600' : 'bg-white text-gray-900 border-gray-200'
+        } ${!data.online ? 'bg-gray-50 opacity-60' : ''}`}>
+
+            {/* NAGŁÓWEK */}
+            <div className="flex justify-between items-start">
+            <span className="font-bold text-xs truncate pr-1 uppercase tracking-wider text-gray-500 group-hover:text-gray-700">
+                {data.name}
+            </span>
+                <div className="flex items-center gap-1">
                     {renderBattery(battery)}
-                    {data.online ? <Wifi size={14} color="#10b981"/> : <WifiOff size={14} color="#ef4444" />}
+                    {data.online ? (
+                        <Wifi size={14} className="text-green-500" />
+                    ) : (
+                        <WifiOff size={14} className="text-red-500" />
+                    )}
                 </div>
             </div>
 
-            <div className="smoke-content">
+            {/* CENTRUM KARTY */}
+            <div className="flex flex-col items-center justify-center flex-grow py-2">
                 {isSmokeSensor ? (
                     <>
-                        {smokeAlarm ? (
-                            <>
-                                <Siren size={48} className="alarm-icon pulse-animation" />
-                                <div className="alarm-text">ALARM!</div>
-                            </>
+                        {!data.online ? (
+                            <div className="flex flex-col items-center text-gray-400">
+                                <Siren size={40} className="opacity-20" />
+                                <span className="text-[10px] mt-2 font-medium uppercase">Nieaktywny</span>
+                            </div>
+                        ) : smokeAlarm ? (
+                            <div className="flex flex-col items-center">
+                                <Siren size={48} className="animate-pulse mb-1" />
+                                <div className="font-black text-base tracking-tighter uppercase">ALARM!</div>
+                            </div>
                         ) : (
-                            <>
-                                <ShieldCheck size={48} className="normal-icon" />
-                                <div className="normal-text">OK</div>
-                            </>
+                            <div className="flex flex-col items-center text-green-600">
+                                <ShieldCheck size={44} className="mb-1" />
+                                <div className="font-bold text-xs uppercase">Bezpiecznie</div>
+                            </div>
                         )}
-                        <div className="smoke-value-badge">
-                            {smokeValue ? `Poziom: ${smokeValue}` : (statusVal || 'Czuwanie')}
-                        </div>
                     </>
                 ) : (
-                    <div className="th-readings">
+                    <div className="flex flex-col items-center gap-1">
                         {temp !== null && (
-                            <div className="reading main-val">
-                                <Thermometer size={28} color="#ef4444" />
-                                <span>{temp}°C</span>
+                            <div className="flex flex-col items-center leading-none">
+                                <div className="flex items-center gap-1">
+                                    <Thermometer size={20} className="text-red-500" />
+                                    <span className="text-3xl font-black">{temp}°C</span>
+                                </div>
                             </div>
                         )}
                         {hum !== null && (
-                            <div className="reading sub-val">
-                                <Droplets size={18} color="#3b82f6" />
-                                <span>{hum}%</span>
+                            <div className="flex items-center gap-1 mt-1 text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                                <Droplets size={14} className="text-blue-500" />
+                                <span className="text-sm font-bold">{hum}%</span>
                             </div>
                         )}
                         {!temp && !hum && (
-                            <div className="no-data">
-                                {data.productName}
-                            </div>
+                            <span className="text-[10px] text-gray-400 text-center">{data.productName}</span>
                         )}
                     </div>
                 )}
             </div>
-            <div className="model-footer">{data.productName || data.model}</div>
+
+            {/* STOPKA */}
+            <div className="text-[9px] text-gray-400 uppercase text-center border-t border-gray-100 pt-2 truncate">
+                {smokeAlarm ? 'Zagrożenie dymem' : (smokeValue ? `Poziom: ${smokeValue}` : (data.productName || data.model))}
+            </div>
         </div>
     );
 };

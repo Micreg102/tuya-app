@@ -71,73 +71,51 @@ const Dashboard = () => {
     if (loading) return <div className="loading"><Loader2 className="spin" size={48} /></div>;
 
     return (
-        <div>
-            {/* --- PRZYCISK TESTOWY (NAD ZAKŁADKAMI LUB OBOK) --- */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+        <div className="p-4 bg-gray-50 min-h-screen">
+            {/* PRZYCISK TESTOWY */}
+            <div className="flex justify-center mb-4">
                 <button
-                    onClick={() => {
-                        setTestMode(!testMode);
-                        setActiveTab('smoke'); // Przełącz na zakładkę dymu, żeby zobaczyć efekt
-                    }}
-                    style={{
-                        background: testMode ? '#ef4444' : '#334155',
-                        color: 'white',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontWeight: 'bold',
-                        boxShadow: testMode ? '0 0 15px rgba(239, 68, 68, 0.5)' : 'none'
-                    }}
+                    onClick={() => { setTestMode(!testMode); setActiveTab('smoke'); }}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-bold transition-all ${
+                        testMode ? 'bg-red-600 text-white shadow-lg' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
                 >
-                    <Bug size={16} />
+                    <Bug size={14} />
                     {testMode ? 'WYŁĄCZ SYMULACJĘ' : 'TEST ALARMU'}
                 </button>
             </div>
 
-            {/* --- NAWIGACJA ZAKŁADEK --- */}
-            <div className="tabs-container">
-                <button
-                    className={`tab-button ${activeTab === 'temp' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('temp')}
-                >
-                    <Thermometer size={16} />
-                    Temperatura
-                    <span className="tab-count">{tempDevices.length}</span>
-                </button>
-
-                <button
-                    className={`tab-button ${activeTab === 'smoke' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('smoke')}
-                >
-                    <Flame size={16} />
-                    Czujniki Dymu
-                    <span className="tab-count">{smokeDevices.length}</span>
-                </button>
-
-                <button
-                    className={`tab-button ${activeTab === 'other' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('other')}
-                >
-                    <Grid size={16} />
-                    Pozostałe
-                    <span className="tab-count">{otherDevices.length}</span>
-                </button>
+            {/* ZAKŁADKI */}
+            <div className="flex justify-center gap-2 mb-6 border-b border-gray-200 pb-3">
+                {[
+                    { id: 'temp', label: 'Temp.', icon: Thermometer, count: tempDevices.length },
+                    { id: 'smoke', label: 'Dym', icon: Flame, count: smokeDevices.length },
+                    { id: 'other', label: 'Inne', icon: Grid, count: otherDevices.length }
+                ].map(tab => (
+                    <button
+                        key={tab.id}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                            activeTab === tab.id ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border text-gray-600 hover:bg-gray-50'
+                        }`}
+                        onClick={() => setActiveTab(tab.id)}
+                    >
+                        <tab.icon size={14} />
+                        {tab.label}
+                        <span className="text-[10px] opacity-60">({tab.count})</span>
+                    </button>
+                ))}
             </div>
 
-            {/* --- SIATKA URZĄDZEŃ --- */}
-            <div className="grid-container">
+            {/* SIATKA URZĄDZEŃ - DUŻO WIĘCEJ KOLUMN = MNIEJSZE KARTY */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 max-w-7xl mx-auto">
                 {currentList.length > 0 ? (
                     currentList.map(device => (
-                        <Link to={`/device/${device.id}`} key={device.id} style={{ textDecoration: 'none' }}>
+                        <Link to={`/device/${device.id}`} key={device.id} className="no-underline group">
                             <DeviceCard deviceId={device.id} initialData={device} />
                         </Link>
                     ))
                 ) : (
-                    <div className="no-data">Brak urządzeń w tej kategorii.</div>
+                    <div className="col-span-full text-center py-10 text-gray-400 italic text-sm">Brak urządzeń.</div>
                 )}
             </div>
         </div>
