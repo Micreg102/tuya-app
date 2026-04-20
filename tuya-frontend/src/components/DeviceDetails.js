@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { WebSocketContext } from '../WebSocketContext';
 import axios from 'axios';
 import { ChevronLeft, Activity, Cpu, Thermometer, Droplets, Battery, ShieldAlert,Siren, History } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
@@ -39,17 +40,95 @@ const DeviceDetails = () => {
             .catch(err => console.error("Błąd pobierania historii:", err))
             .finally(() => setLoading(false));
     }, [deviceId]);
+    const wsUpdateData = useContext(WebSocketContext);
 
+    useEffect(() => {
+        if (!wsUpdateData || wsUpdateData.devId !== deviceId) return;
+
+        // 1. Aktualizacja surowych statusów i specyfikacji (bez błędów mutacji)
+        setDevice(prev => {
+            if (!prev) return prev;
+            let newState = { ...prev };
+            const updates = wsUpdateData.status || wsUpdateData.properties || [];
+
+            let newStatus = [...(newState.status || [])];
+            updates.forEach(upd => {
+                const i = newStatus.findIndex(s => s.code === upd.code);
+                if (i !== -1) {
+                    newStatus[i] = { ...newStatus[i], value: upd.value };
+                } else {
+                    newStatus.push(upd);
+                }
+            });
+            newState.status = newStatus;
+            return newState;
+        });
+
+        // 2. Dodawanie punktu do wykresu "w locie" z POPRAWNYM TIMESTAMPEM
+        const updates = wsUpdateData.status || wsUpdateData.properties || [];
+        if (updates.length > 0) {
+            const newTempRaw = updates.find(u => u.code.includes('temp'))?.value;
+            const newHumRaw = updates.find(u => u.code.includes('hum'))?.value;
+            const newBattRaw = updates.find(u => u.code.includes('battery'))?.value;
+            const newSmokeRaw = updates.find(u => u.code.includes('smoke_sensor_status') || u.code.includes('smoke_sensor_state'))?.value;
+
+            // Ignorujemy puste pakiety techniczne
+            if (newTempRaw === undefined && newHumRaw === undefined && newBattRaw === undefined && newSmokeRaw === undefined) {
+                return;
+            }
+
+            const dateObj = new Date();
+            const newEntry = {
+                timestamp: dateObj.toISOString(), // KLUCZOWE: Pełna data, żeby filtry nie odrzucały punktu!
+                time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                fullDate: dateObj.toLocaleString(),
+                temperature: newTempRaw !== undefined ? newTempRaw / 10 : null,
+                humidity: newHumRaw !== undefined ? newHumRaw : null,
+                battery: newBattRaw !== undefined ? newBattRaw : null,
+                smokeStatus: newSmokeRaw || null,
+            };
+
+            // Dodajemy nowy punkt na koniec historii
+            setHistory(prev => [...prev, newEntry]);
+        }
+    }, [wsUpdateData, deviceId]);
     if (loading || !device) return <div className="loading">Ładowanie szczegółów...</div>;
 
     // Sprawdzamy typ urządzenia, aby wyświetlić odpowiedni wykres
     const isSmokeSensor = device.category === 'sensor' || device.category === 'cs';
+    // 1. ZAAWANSOWANE FILTROWANIE I FORMATOWANIE OSI X
     const filteredHistory = history.filter(item => {
-        const itemDate = new Date(item.timestamp);
+        const itemTime = new Date(item.timestamp).getTime();
         const now = new Date();
-        if (timeRange === 'today') return itemDate > new Date(now.setHours(0,0,0,0));
-        if (timeRange === 'week') return itemDate > new Date(now.setDate(now.getDate() - 7));
-        return true; // dla 'lifetime'
+
+        if (timeRange === 'today') {
+            // Od północy dzisiaj
+            return itemTime >= new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        }
+        if (timeRange === 'week') {
+            // Od 7 dni wstecz
+            return itemTime >= new Date(now.setDate(now.getDate() - 7)).getTime();
+        }
+        if (timeRange === 'year') {
+            // Od 365 dni wstecz
+            return itemTime >= new Date(now.setFullYear(now.getFullYear() - 1)).getTime();
+        }
+        return true; // dla 'all'
+    }).map(item => {
+        // 2. DYNAMICZNA OŚ X (Godzina dla dzisiaj, Data+Godzina dla reszty)
+        const d = new Date(item.timestamp);
+        let displayX = '';
+
+        if (timeRange === 'today') {
+            displayX = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } else {
+            const day = d.getDate().toString().padStart(2, '0');
+            const month = (d.getMonth() + 1).toString().padStart(2, '0');
+            const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            displayX = `${day}.${month} ${time}`;
+        }
+
+        return { ...item, displayX };
     });
     // Filtrujemy tylko te wpisy z historii, gdzie był alarm dymu (do osi czasu)
     const alarmEvents = history.filter(h => h.smokeStatus === 'alarm' || h.smokeStatus === '1');
@@ -88,23 +167,60 @@ const DeviceDetails = () => {
                             <ResponsiveContainer width="100%" height="100%">
                                 {isSmokeSensor ? (
                                     // WYKRES BATERII DLA DYMU
-                                    <AreaChart data={history}>
+                                    <AreaChart data={filteredHistory}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                        <XAxis dataKey="time" stroke="#cbd5e1" fontSize={11} />
+                                        <XAxis dataKey="displayX" stroke="#cbd5e1" fontSize={11} minTickGap={30} />
                                         <YAxis stroke="#cbd5e1" fontSize={11} domain={[0, 100]} />
                                         <Tooltip />
-                                        <Area type="stepAfter" dataKey="battery" name="Bateria (%)" stroke="#10b981" fill="#10b981" fillOpacity={0.1} />
+                                        <Area
+                                            type="stepAfter"
+                                            dataKey="battery"
+                                            name="Bateria (%)"
+                                            stroke="#10b981"
+                                            fill="#10b981"
+                                            fillOpacity={0.1}
+                                            connectNulls={true} // Bateria rysuje się ciągiem mimo braku danych pośrodku
+                                        />
                                     </AreaChart>
                                 ) : (
                                     // WYKRES TEMP/HUM DLA KLIMATU
-                                    <LineChart data={history}>
+                                    <LineChart data={filteredHistory}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                        <XAxis dataKey="time" stroke="#cbd5e1" fontSize={11} />
+                                        <XAxis dataKey="displayX" stroke="#cbd5e1" fontSize={11} minTickGap={30} />
                                         <YAxis yAxisId="left" stroke="#ef4444" fontSize={11} />
                                         <YAxis yAxisId="right" orientation="right" stroke="#3b82f6" fontSize={11} />
                                         <Tooltip />
-                                        <Line yAxisId="left" type="monotone" dataKey="temperature" name="Temp (°C)" stroke="#ef4444" strokeWidth={3} dot={false} />
-                                        <Line yAxisId="right" type="monotone" dataKey="humidity" name="Wilgotność (%)" stroke="#3b82f6" strokeWidth={3} dot={false} />
+                                        <Line
+                                            yAxisId="left"
+                                            type="monotone"
+                                            dataKey="temperature"
+                                            name="Temp (°C)"
+                                            stroke="#ef4444"
+                                            strokeWidth={3}
+                                            dot={false}
+                                            connectNulls={false} // Przerywa linię, jeśli temperatura to null
+                                        />
+                                        <Line
+                                            yAxisId="right"
+                                            type="monotone"
+                                            dataKey="humidity"
+                                            name="Wilgotność (%)"
+                                            stroke="#3b82f6"
+                                            strokeWidth={3}
+                                            dot={false}
+                                            connectNulls={false} // Przerywa linię, jeśli wilgotność to null
+                                        />
+                                        <Line
+                                            yAxisId="right"
+                                            type="stepAfter"
+                                            dataKey="battery"
+                                            name="Bateria (%)"
+                                            stroke="#10b981"
+                                            strokeWidth={2}
+                                            strokeDasharray="5 5"
+                                            dot={false}
+                                            connectNulls={true} // Łączy punkty baterii ignorując nulle po drodze
+                                        />
                                     </LineChart>
                                 )}
                             </ResponsiveContainer>

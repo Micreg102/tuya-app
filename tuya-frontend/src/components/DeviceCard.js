@@ -90,7 +90,7 @@ const DeviceCard = ({ deviceId, initialData }) => {
                         } else {
                             console.log(`  -> BEZ ZMIAN: [${incomingItem.code}] wynosi nadal ${oldValue}`);
                         }
-                        newStatus[index].value = incomingItem.value;
+                        newStatus[index] = { ...newStatus[index], value: incomingItem.value };
                     } else {
                         console.log(`  -> NOWY: [${incomingItem.code}] dodano do kafelka z wartoscia ${incomingItem.value}`);
                         newStatus.push(incomingItem);
