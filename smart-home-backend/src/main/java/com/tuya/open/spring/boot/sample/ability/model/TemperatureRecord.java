@@ -12,9 +12,11 @@ import java.time.LocalDateTime;
 @Document(collection = "temperature_history")
 public class TemperatureRecord {
     @Id
-    String id;
-    String deviceId;
-    Double temperature;
-    Double humidity;
-    LocalDateTime timestamp;
+    private String id;
+    private String deviceId;
+    private Double temperature;
+    private Double humidity;
+    private Integer battery;
+    private String smokeStatus;
+    private LocalDateTime timestamp;
 }
