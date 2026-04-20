@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import {
     Thermometer, Droplets, Siren, ShieldCheck,
     Wifi, WifiOff, Loader2, Battery, BatteryLow, BatteryMedium, BatteryFull
 } from 'lucide-react';
+import { WebSocketContext } from '../WebSocketContext';
 import '../App.css';
 
-// Dodajemy prop 'initialData'
 const DeviceCard = ({ deviceId, initialData }) => {
-    // Jeśli mamy dane od rodzica (Dashboard), użyjmy ich na start
     const [data, setData] = useState(initialData || null);
 
+    // Podpinamy się pod wiadomości z WebSocketu
+    const wsUpdateData = useContext(WebSocketContext);
+
+    // FUNKCJA POMOCNICZA: Pobieranie konkretnego parametru z obiektu urządzenia
     const getStatus = (code) => {
         if (!data || !data.status) return null;
         const item = data.status.find(s => s.code === code);
@@ -21,34 +24,91 @@ const DeviceCard = ({ deviceId, initialData }) => {
         return item.value;
     };
 
+    // PIERWSZY useEffect: Pobranie danych startowych po HTTP (tylko raz)
     useEffect(() => {
-        // Funkcja do odświeżania danych (używana przez WebSocket)
-        const fetchData = () => {
-            if (deviceId.startsWith('test-sim')) return;
+        if (!initialData && !deviceId.startsWith('test-sim')) {
             axios.get(`http://localhost:8080/devices/${deviceId}`)
                 .then(res => setData(res.data))
-                .catch(err => console.error("Błąd:", err));
-        };
+                .catch(err => console.error("Błąd pobierania urządzenia:", err));
+        }
+    }, [deviceId, initialData]);
 
-        // Jeśli NIE otrzymaliśmy initialData, pobierzmy dane sami na starcie
-        if (!initialData) {
-            fetchData();
+    // DRUGI useEffect: Reagowanie na zmiany z WebSocketu na żywo
+    useEffect(() => {
+        if (!wsUpdateData || wsUpdateData.devId !== deviceId) {
+            return;
         }
 
-        const handleWsUpdate = (event) => {
-            if (event.detail.deviceId === deviceId) {
-                // Jeśli WebSocket sygnalizuje zmianę w tym urządzeniu - odśwież
-                fetchData();
-            }
-        };
+        setData(prevData => {
+            if (!prevData) return prevData;
 
-        window.addEventListener('tuyaUpdate', handleWsUpdate);
-        return () => window.removeEventListener('tuyaUpdate', handleWsUpdate);
-    }, [deviceId, initialData]);
+            let newState = { ...prevData };
+
+            // Rozpoczynamy blok logowania dla tego pakietu
+            console.log(`\n--- OTRZYMANO PAKIET: ${prevData.name || deviceId} ---`);
+
+            // Logowanie typu komunikatu (bizCode, np. "online", "offline" lub brak przy zwykłych danych)
+            if (wsUpdateData.bizCode) {
+                console.log(`Typ komunikatu (bizCode): ${wsUpdateData.bizCode}`);
+            }
+
+            // 1. Logowanie i zmiana statusu sieciowego
+            if (wsUpdateData.bizCode === 'online') {
+                if (!prevData.online) console.log(`Status sieci: ZMIANA z OFFLINE na ONLINE`);
+                else console.log(`Status sieci: POTWIERDZONO ONLINE (bez zmian)`);
+                newState.online = true;
+            } else if (wsUpdateData.bizCode === 'offline') {
+                if (prevData.online) console.log(`Status sieci: ZMIANA z ONLINE na OFFLINE`);
+                else console.log(`Status sieci: POTWIERDZONO OFFLINE (bez zmian)`);
+                newState.online = false;
+            }
+
+            // Wymuszenie statusu online, gdy przyjdą jakiekolwiek dane
+            if ((wsUpdateData.status && wsUpdateData.status.length > 0) ||
+                (wsUpdateData.properties && wsUpdateData.properties.length > 0)) {
+                if (!newState.online) {
+                    console.log(`Status sieci: WYBUDZENIE z OFFLINE na ONLINE (otrzymano dane)`);
+                    newState.online = true;
+                }
+            }
+
+            // 2. Aktualizacja i logowanie parametrów (np. temperatura, bateria)
+            let newStatus = [...(newState.status || [])];
+            const incomingUpdates = wsUpdateData.status || wsUpdateData.properties || [];
+
+            if (incomingUpdates.length === 0) {
+                console.log(`Parametry: Brak danych z sensorów w tym pakiecie.`);
+            } else {
+                console.log(`Parametry odebrane w pakiecie:`);
+                incomingUpdates.forEach(incomingItem => {
+                    const index = newStatus.findIndex(s => s.code === incomingItem.code);
+
+                    if (index !== -1) {
+                        const oldValue = newStatus[index].value;
+                        if (oldValue !== incomingItem.value) {
+                            console.log(`  -> ZMIANA: [${incomingItem.code}] ${oldValue} ---> ${incomingItem.value}`);
+                        } else {
+                            console.log(`  -> BEZ ZMIAN: [${incomingItem.code}] wynosi nadal ${oldValue}`);
+                        }
+                        newStatus[index].value = incomingItem.value;
+                    } else {
+                        console.log(`  -> NOWY: [${incomingItem.code}] dodano do kafelka z wartoscia ${incomingItem.value}`);
+                        newStatus.push(incomingItem);
+                    }
+                });
+            }
+
+            console.log(`------------------------------------------------------\n`);
+
+            newState.status = newStatus;
+            return newState;
+        });
+
+    }, [wsUpdateData, deviceId]);
 
     if (!data) return <div className="card loading"><Loader2 className="spin" /></div>;
 
-    // --- LOGIKA KATEGORII (musi być spójna z Dashboard.js) ---
+    // --- LOGIKA KATEGORII ---
     const isTHSensor = data.category === 'wsdcg';
     const isSmokeSensor = data.category === 'sensor' || data.category === 'cs';
 
@@ -56,17 +116,17 @@ const DeviceCard = ({ deviceId, initialData }) => {
     const hum = getStatus('va_humidity') || getStatus('humidity_value');
     const battery = getStatus('battery_percentage');
 
-    // Logika alarmu dymu
     const statusVal = getStatus('smoke_sensor_status');
     const smokeAlarm = statusVal === 'alarm' || statusVal === '1';
     const smokeValue = getStatus('smoke_sensor_value');
 
+    // FUNKCJA POMOCNICZA: Renderowanie ikony baterii
     const renderBattery = (pct) => {
         if (pct === null || pct === undefined) return null;
         let Icon = BatteryFull;
-        let color = "#10b981";
-        if (pct <= 20) { Icon = BatteryLow; color = "#ef4444"; }
-        else if (pct <= 60) { Icon = BatteryMedium; color = "#f59e0b"; }
+        let color = "#10b981"; // Zielony
+        if (pct <= 20) { Icon = BatteryLow; color = "#ef4444"; } // Czerwony
+        else if (pct <= 60) { Icon = BatteryMedium; color = "#f59e0b"; } // Pomarańczowy
         return (
             <div className="battery-box">
                 <Icon size={14} color={color} />
@@ -99,7 +159,6 @@ const DeviceCard = ({ deviceId, initialData }) => {
                                 <div className="normal-text">OK</div>
                             </>
                         )}
-                        {/* Wyświetlamy wartość z sensora jeśli istnieje, w przeciwnym razie stan */}
                         <div className="smoke-value-badge">
                             {smokeValue ? `Poziom: ${smokeValue}` : (statusVal || 'Czuwanie')}
                         </div>
@@ -118,7 +177,6 @@ const DeviceCard = ({ deviceId, initialData }) => {
                                 <span>{hum}%</span>
                             </div>
                         )}
-                        {/* Fallback dla innych urządzeń (np. gniazdka) */}
                         {!temp && !hum && (
                             <div className="no-data">
                                 {data.productName}
