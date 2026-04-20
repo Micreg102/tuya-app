@@ -112,7 +112,7 @@ const DeviceCard = ({ deviceId, initialData }) => {
     const isTHSensor = data.category === 'wsdcg';
     const isSmokeSensor = data.category === 'sensor' || data.category === 'cs';
 
-    const temp = getStatus('va_temperature') || getStatus('temp_current');
+    const temp = getStatus('temp_current') || getStatus('va_temperature') ;
     const hum = getStatus('va_humidity') || getStatus('humidity_value');
     const battery = getStatus('battery_percentage');
 
