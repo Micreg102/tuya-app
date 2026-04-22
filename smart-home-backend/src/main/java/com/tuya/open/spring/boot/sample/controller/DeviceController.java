@@ -3,6 +3,7 @@ package com.tuya.open.spring.boot.sample.controller;
 import com.tuya.open.spring.boot.sample.ability.model.Device;
 import com.tuya.open.spring.boot.sample.service.DeviceService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -46,5 +47,13 @@ public class DeviceController {
                         .build();
         temperatureRepository.save(test);
         return "Zapisano testowy rekord!";
+    }
+    @GetMapping("/{deviceId}/predict")
+    public ResponseEntity<?> predictDeviceTemperature(@PathVariable String deviceId) {
+        try {
+            return ResponseEntity.ok(deviceService.getTemperaturePrediction(deviceId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }
