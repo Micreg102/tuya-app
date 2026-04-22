@@ -37,6 +37,12 @@ public class DeviceController {
     public List<com.tuya.open.spring.boot.sample.ability.model.TemperatureRecord> getHistory(@PathVariable String deviceId) {
         return temperatureRepository.findTop100ByDeviceIdOrderByTimestampDesc(deviceId);
     }
+    @GetMapping("/{deviceId}/history/smart")
+    public ResponseEntity<?> getSmartDeviceHistory(
+            @PathVariable String deviceId,
+            @RequestParam(defaultValue = "today") String range) {
+        return ResponseEntity.ok(deviceService.getSmartHistory(deviceId, range));
+    }
     @GetMapping("/test-db")
     public String testDb() {
         com.tuya.open.spring.boot.sample.ability.model.TemperatureRecord test =

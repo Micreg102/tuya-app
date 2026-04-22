@@ -10,4 +10,6 @@ public interface TemperatureRepository extends MongoRepository<TemperatureRecord
     // Pobiera 100 ostatnich wpisów dla danej czujki, od najnowszych
     List<TemperatureRecord> findTop100ByDeviceIdOrderByTimestampDesc(String deviceId);
     List<TemperatureRecord> findTop2000ByDeviceIdOrderByTimestampDesc(String deviceId);
+    List<TemperatureRecord> findTop5000ByDeviceIdOrderByTimestampDesc(String deviceId); // Dla roku
+    List<TemperatureRecord> findTop10000ByDeviceIdOrderByTimestampDesc(String deviceId); // Dla lifetime
 }

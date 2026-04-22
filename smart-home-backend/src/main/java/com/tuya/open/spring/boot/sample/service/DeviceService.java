@@ -81,6 +81,17 @@ public class DeviceService {
             throw new RuntimeException("Nie można połączyć się z serwerem AI na porcie 8000: " + e.getMessage());
         }
     }
+    public List<TemperatureRecord> getSmartHistory(String deviceId, String range) {
+        if ("today".equals(range)) {
+            return temperatureRepository.findTop100ByDeviceIdOrderByTimestampDesc(deviceId);
+        } else if ("month".equals(range)) {
+            return temperatureRepository.findTop2000ByDeviceIdOrderByTimestampDesc(deviceId);
+        } else if ("year".equals(range)) {
+            return temperatureRepository.findTop5000ByDeviceIdOrderByTimestampDesc(deviceId);
+        } else { // "all"
+            return temperatureRepository.findTop10000ByDeviceIdOrderByTimestampDesc(deviceId);
+        }
+    }
 
 
 }

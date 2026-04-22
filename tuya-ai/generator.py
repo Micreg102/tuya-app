@@ -14,17 +14,17 @@ device_id = "bf725076682667c134lh1i"
 print("Czyszczenie starej historii...")
 collection.delete_many({"deviceId": device_id})
 
-now = datetime.datetime.now()
+now = datetime.datetime(2026, 4, 22, 18, 0, 0)
 records = []
 
-print("Generowanie 7 dni ultra-realistycznego klimatu z wietrzeniem...")
+print("Generowanie 30 dni ultra-realistycznego klimatu z wietrzeniem...")
 
 # Zaczynamy od standardowej temperatury 21.0
 current_temp = 21.0
 
 # Generujemy pomiary co 30 minut.
 # Idziemy pętlą od najstarszego pomiaru (7 dni temu) do "teraz", żeby ładnie symulować nagrzewanie po wietrzeniu
-for i in range(336, -1, -1):
+for i in range(1440, -1, -1):
     past_time = now - datetime.timedelta(minutes=30 * i)
     hour = past_time.hour
 

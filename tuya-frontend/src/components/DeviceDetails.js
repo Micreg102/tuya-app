@@ -25,19 +25,34 @@ const DeviceDetails = () => {
         axios.get(`http://localhost:8080/devices/${deviceId}`)
             .then(res => setDevice(res.data))
             .catch(err => console.error(err));
+    }, [deviceId]);
 
-        axios.get(`http://localhost:8080/devices/${deviceId}/history`)
+    // Inteligentne pobieranie historii zależne od wybranego przycisku czasu
+    useEffect(() => {
+        setLoading(true);
+        axios.get(`http://localhost:8080/devices/${deviceId}/history/smart?range=${timeRange}`)
             .then(res => {
-                const formattedData = res.data.reverse().map(item => ({
-                    ...item,
-                    time: new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    fullDate: new Date(item.timestamp).toLocaleString()
-                }));
+                const formattedData = res.data.reverse().map(item => {
+                    const d = new Date(item.timestamp);
+                    let displayX = '';
+                    if (timeRange === 'today') {
+                        displayX = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    } else {
+                        displayX = `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                    }
+                    return {
+                        ...item,
+                        timeMs: d.getTime(),
+                        time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        fullDate: d.toLocaleString(),
+                        displayX: displayX
+                    };
+                });
                 setHistory(formattedData);
             })
             .catch(err => console.error(err))
             .finally(() => setLoading(false));
-    }, [deviceId]);
+    }, [deviceId, timeRange]);
 
     useEffect(() => {
         if (!wsUpdateData || wsUpdateData.devId !== deviceId) return;
@@ -90,6 +105,7 @@ const DeviceDetails = () => {
                     const d = new Date(p.timestamp);
                     return {
                         timestamp: p.timestamp,
+                        timeMs: d.getTime(),
                         displayX: `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
                         predicted_temperature: p.predicted_temperature
                     };
@@ -109,25 +125,25 @@ const DeviceDetails = () => {
     const isSmokeSensor = device.category === 'sensor' || device.category === 'cs';
 
     // Logika filtrów z MIESIĄCEM zamiast tygodnia
-    const filteredHistory = history.filter(item => {
-        const itemTime = new Date(item.timestamp).getTime();
-        const now = new Date();
-        if (timeRange === 'today') return itemTime >= new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-        if (timeRange === 'month') return itemTime >= new Date(now.setMonth(now.getMonth() - 1)).getTime(); // Zmieniono na MIESIĄC
-        if (timeRange === 'year') return itemTime >= new Date(now.setFullYear(now.getFullYear() - 1)).getTime();
-        return true;
-    }).map(item => {
-        const d = new Date(item.timestamp);
-        let displayX = '';
-        if (timeRange === 'today') {
-            displayX = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } else {
-            displayX = `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-        }
-        return { ...item, displayX };
-    });
+    // const filteredHistory = history.filter(item => {
+    //     const itemTime = new Date(item.timestamp).getTime();
+    //     const now = new Date();
+    //     if (timeRange === 'today') return itemTime >= new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    //     if (timeRange === 'month') return itemTime >= new Date(now.setMonth(now.getMonth() - 1)).getTime(); // Zmieniono na MIESIĄC
+    //     if (timeRange === 'year') return itemTime >= new Date(now.setFullYear(now.getFullYear() - 1)).getTime();
+    //     return true;
+    // }).map(item => {
+    //     const d = new Date(item.timestamp);
+    //     let displayX = '';
+    //     if (timeRange === 'today') {
+    //         displayX = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    //     } else {
+    //         displayX = `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    //     }
+    //     return { ...item, displayX };
+    // });
 
-    const chartData = [...filteredHistory, ...aiPredictions];
+    const chartData = [...history, ...aiPredictions];
 
     return (
         <div className="min-h-screen bg-gray-50 p-6 text-gray-900">
@@ -189,12 +205,30 @@ const DeviceDetails = () => {
                                 ) : (
                                     <LineChart data={chartData}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                        <XAxis dataKey="displayX" stroke="#cbd5e1" fontSize={11} minTickGap={30} />
+                                        <XAxis
+                                            dataKey="timeMs"
+                                            type="number"
+                                            scale="time"
+                                            domain={['dataMin', 'dataMax']}
+                                            stroke="#cbd5e1"
+                                            fontSize={11}
+                                            minTickGap={40} // Zwiększyłem odstęp, żeby data i godzina się nie zderzały
+                                            tickFormatter={(unixTime) => {
+                                                const d = new Date(unixTime);
+                                                // Zawsze zwracamy pełny format: DD.MM HH:mm
+                                                return `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                                            }}
+                                        />
 
                                         <YAxis yAxisId="left" stroke="#ef4444" fontSize={11} domain={['auto', 'auto']} />
                                         <YAxis yAxisId="right" orientation="right" stroke="#3b82f6" fontSize={11} domain={[0, 100]} />
 
-                                        <Tooltip />
+                                        <Tooltip
+                                            labelFormatter={(label) => {
+                                                const d = new Date(label);
+                                                return `Data: ${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')}.${d.getFullYear()} o ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                                            }}
+                                        />
                                         <Legend />
 
                                         <Line yAxisId="left" type="monotone" dataKey="temperature" name="Temp Historyczna (°C)" stroke="#ef4444" strokeWidth={3} dot={false} connectNulls={false} />
