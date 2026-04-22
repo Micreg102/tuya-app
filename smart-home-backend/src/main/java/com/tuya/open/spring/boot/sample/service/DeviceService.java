@@ -49,7 +49,7 @@ public class DeviceService {
     }
     public Map<String, Object> getTemperaturePrediction(String deviceId) {
         // 1. Pobieramy historię (założyłem nazwę metody w repozytorium, dostosuj jeśli masz inną)
-        List<TemperatureRecord> history = temperatureRepository.findTop100ByDeviceIdOrderByTimestampDesc(deviceId);
+        List<TemperatureRecord> history = temperatureRepository.findTop2000ByDeviceIdOrderByTimestampDesc(deviceId);
 
         List<String> timestamps = new ArrayList<>();
         List<Double> temperatures = new ArrayList<>();

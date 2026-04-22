@@ -12,15 +12,15 @@ const DeviceDetails = () => {
     const [device, setDevice] = useState(null);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
+    // Domyślny filtr to dzisiaj
     const [timeRange, setTimeRange] = useState('today');
 
-    // --- STANY DLA AI ---
+    // Stany dla AI
     const [aiPredictions, setAiPredictions] = useState([]);
     const [aiLoading, setAiLoading] = useState(false);
 
     const wsUpdateData = useContext(WebSocketContext);
 
-    // 1. Inicjalizacja danych
     useEffect(() => {
         axios.get(`http://localhost:8080/devices/${deviceId}`)
             .then(res => setDevice(res.data))
@@ -39,10 +39,8 @@ const DeviceDetails = () => {
             .finally(() => setLoading(false));
     }, [deviceId]);
 
-    // 2. WebSocket Update (bez zmian)
     useEffect(() => {
         if (!wsUpdateData || wsUpdateData.devId !== deviceId) return;
-        // Aktualizacja kafelków stanu
         setDevice(prev => {
             if (!prev) return prev;
             let newState = { ...prev };
@@ -57,7 +55,6 @@ const DeviceDetails = () => {
             return newState;
         });
 
-        // Aktualizacja wykresu w locie
         const updates = wsUpdateData.status || wsUpdateData.properties || [];
         if (updates.length > 0) {
             const newTempRaw = updates.find(u => u.code.includes('temp'))?.value;
@@ -81,7 +78,6 @@ const DeviceDetails = () => {
         }
     }, [wsUpdateData, deviceId]);
 
-    // --- FUNKCJA WYZWALAJĄCA PREDYKCJĘ AI ---
     const handlePredictAI = () => {
         setAiLoading(true);
         axios.get(`http://localhost:8080/devices/${deviceId}/predict`)
@@ -90,7 +86,6 @@ const DeviceDetails = () => {
                     alert(res.data.error);
                     return;
                 }
-                // Formatujemy przewidywania z Pythona, żeby pasowały do wykresu Recharts
                 const formattedPredictions = res.data.predictions.map(p => {
                     const d = new Date(p.timestamp);
                     return {
@@ -100,7 +95,7 @@ const DeviceDetails = () => {
                     };
                 });
                 setAiPredictions(formattedPredictions);
-                setTimeRange('all'); // Automatycznie zmieniamy widok na wszystko, żeby zobaczyć przyszłość
+                // USUNIĘTO: setTimeRange('all'); - teraz filtr zostaje taki, jaki był wybrany
             })
             .catch(err => {
                 console.error("Błąd AI:", err);
@@ -112,14 +107,13 @@ const DeviceDetails = () => {
     if (loading || !device) return <div className="loading flex justify-center items-center h-screen">Ładowanie...</div>;
 
     const isSmokeSensor = device.category === 'sensor' || device.category === 'cs';
-    const alarmEvents = history.filter(h => h.smokeStatus === 'alarm' || h.smokeStatus === '1');
 
-    // 3. Przygotowanie danych na wykres (Historia + Przyszłość AI)
+    // Logika filtrów z MIESIĄCEM zamiast tygodnia
     const filteredHistory = history.filter(item => {
         const itemTime = new Date(item.timestamp).getTime();
         const now = new Date();
         if (timeRange === 'today') return itemTime >= new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-        if (timeRange === 'week') return itemTime >= new Date(now.setDate(now.getDate() - 7)).getTime();
+        if (timeRange === 'month') return itemTime >= new Date(now.setMonth(now.getMonth() - 1)).getTime(); // Zmieniono na MIESIĄC
         if (timeRange === 'year') return itemTime >= new Date(now.setFullYear(now.getFullYear() - 1)).getTime();
         return true;
     }).map(item => {
@@ -133,7 +127,6 @@ const DeviceDetails = () => {
         return { ...item, displayX };
     });
 
-    // POŁĄCZENIE HISTORII Z PREDYKCJĄ AI W JEDNĄ TABLICĘ DLA WYKRESU
     const chartData = [...filteredHistory, ...aiPredictions];
 
     return (
@@ -155,7 +148,6 @@ const DeviceDetails = () => {
                             </h3>
 
                             <div className="flex flex-wrap items-center gap-4">
-                                {/* PRZYCISK AI */}
                                 {!isSmokeSensor && (
                                     <button
                                         onClick={handlePredictAI}
@@ -168,7 +160,8 @@ const DeviceDetails = () => {
                                 )}
 
                                 <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
-                                    {['today', 'week', 'year', 'all'].map((range) => (
+                                    {/* Podmiana przycisków na widoku */}
+                                    {['today', 'month', 'year', 'all'].map((range) => (
                                         <button
                                             key={range}
                                             onClick={() => setTimeRange(range)}
@@ -176,7 +169,7 @@ const DeviceDetails = () => {
                                                 timeRange === range ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'
                                             }`}
                                         >
-                                            {range === 'today' ? 'Dzisiaj' : range === 'week' ? 'Tydzień' : range === 'year' ? 'Rok' : 'Lifetime'}
+                                            {range === 'today' ? 'Dzisiaj' : range === 'month' ? 'Miesiąc' : range === 'year' ? 'Rok' : 'Lifetime'}
                                         </button>
                                     ))}
                                 </div>
@@ -204,11 +197,10 @@ const DeviceDetails = () => {
                                         <Tooltip />
                                         <Legend />
 
-                                        {/* Historia Czerwona */}
                                         <Line yAxisId="left" type="monotone" dataKey="temperature" name="Temp Historyczna (°C)" stroke="#ef4444" strokeWidth={3} dot={false} connectNulls={false} />
 
-                                        {/* PREDYKCJA AI - POMARAŃCZOWA PRZERYWANA */}
-                                        <Line yAxisId="left" type="monotone" dataKey="predicted_temperature" name="Prognoza AI (°C)" stroke="#f59e0b" strokeWidth={3} strokeDasharray="5 5" dot={{r: 4}} connectNulls={false} />
+                                        {/* PREDYKCJA AI - Zmieniono na ciągłą linię (brak strokeDasharray) i pogrubiono dla lepszej widoczności */}
+                                        <Line yAxisId="left" type="monotone" dataKey="predicted_temperature" name="Prognoza AI (°C)" stroke="#f59e0b" strokeWidth={2} dot={{r: 1}} connectNulls={false} />
 
                                         <Line yAxisId="right" type="monotone" dataKey="humidity" name="Wilgotność (%)" stroke="#3b82f6" strokeWidth={3} dot={false} connectNulls={false} />
                                         <Line yAxisId="right" type="stepAfter" dataKey="battery" name="Bateria (%)" stroke="#10b981" strokeWidth={2} strokeDasharray="4 4" dot={false} connectNulls={true} />
@@ -219,7 +211,6 @@ const DeviceDetails = () => {
                     </div>
                 </div>
 
-                {/* GRID SPECYFIKACJI */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <section className="bg-white border rounded-2xl p-6 shadow-sm">
                         <h3 className="flex items-center gap-2 font-bold mb-4 text-gray-700"><Cpu size={18} /> Specyfikacja</h3>

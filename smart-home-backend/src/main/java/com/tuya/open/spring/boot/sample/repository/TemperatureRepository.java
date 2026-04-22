@@ -9,5 +9,5 @@ import java.util.List;
 public interface TemperatureRepository extends MongoRepository<TemperatureRecord, String> {
     // Pobiera 100 ostatnich wpisów dla danej czujki, od najnowszych
     List<TemperatureRecord> findTop100ByDeviceIdOrderByTimestampDesc(String deviceId);
-
+    List<TemperatureRecord> findTop2000ByDeviceIdOrderByTimestampDesc(String deviceId);
 }
