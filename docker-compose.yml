@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+#  # 1. Baza Danych MongoDB
+#  mongodb:
+#    image: mongo:latest
+#    container_name: tuya-mongo
+#    ports:
+#      - "27017:27017"
+#    volumes:
+#      - mongo-data:/data/db
+#    restart: unless-stopped
+#
+#  # 2. Twój Backend w Spring Boot
+#  backend:
+#    build:
+#      context: ./tuya-connector # Zmień na nazwę folderu z backendem
+#    container_name: tuya-backend
+#    ports:
+#      - "8080:8080"
+#    depends_on:
+#      - mongodb
+#    environment:
+#      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/tuya_db
+#    restart: unless-stopped
+#
+#  # 3. Twój Frontend w React (Nginx)
+#  frontend:
+#    build:
+#      context: ./tuya-frontend # Zmień na nazwę folderu z frontendem
+#    container_name: tuya-frontend
+#    ports:
+#      - "3000:80" # Nginx wewnątrz działa na 80, na zewnątrz wystawiamy na 3000
+#    depends_on:
+#      - backend
+#    restart: unless-stopped
+#
+#volumes:
+#  mongo-data: # To sprawia, że dane w bazie nie znikną po restarcie kontenera
+
+  ai-service:
+    build:
+      context: ./tuya-ai
+    container_name: tuya-ai
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./tuya-connector
+    container_name: tuya-backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongodb
+      - ai-service # Wymuszamy start AI przed Javą
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/tuya
+      # Mówimy Javie, gdzie w sieci Dockerowej znajduje się Python:
+      - AI_SERVICE_URL=http://ai-service:8000/predict
