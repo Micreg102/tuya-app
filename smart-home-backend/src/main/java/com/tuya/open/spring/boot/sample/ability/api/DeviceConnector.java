@@ -9,7 +9,7 @@ import java.util.Map;
 
 public interface DeviceConnector {
     @GET("/v1.3/iot-03/devices")
-    PageResult<Device> getList(@Query("page_no") Integer pageNo, @Query("page_size") Integer pageSize);
+    PageResult<Device> fetchTuyaDevices(@Query("page_no") Integer pageNo, @Query("page_size") Integer pageSize);
     @GET("/v1.0/iot-03/devices/{device_id}/status")
     List<Map<String, Object>> getStatus(@Path("device_id") String deviceId);
     @GET("/v1.1/iot-03/devices/{device_id}")

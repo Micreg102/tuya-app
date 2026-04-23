@@ -44,7 +44,7 @@ public class DeviceService {
     @GetMapping("/all")
     public List<Device> getAllDevices() {
         // Przekazujemy parametry: strona 1, rozmiar 20
-        PageResult<Device> result = deviceConnector.getList(1, 20);
+        PageResult<Device> result = deviceConnector.fetchTuyaDevices(1, 20);
         if (result != null && result.getList() != null) {
             return result.getList();
         }
