@@ -40,7 +40,7 @@ services:
       context: ./tuya-frontend
     container_name: react-frontend
     ports:
-      - "3000:80"
+      - "3030:80"
     depends_on:
       - backend
     restart: unless-stopped
