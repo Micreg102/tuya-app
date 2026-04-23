@@ -10,6 +10,6 @@ FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 # Ustawienie zmiennej środowiskowej dla MongoDB
-ENV SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/tuya
+ENV SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/tuya_iot
 EXPOSE 8080
 ENTRYPOINT ["java","-jar","/app/app.jar"]

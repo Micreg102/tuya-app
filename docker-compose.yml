@@ -2,17 +2,17 @@ version: '3.8'
 
 services:
   mongodb:
-    image: mongo:6.0 # Sprawdzona, stabilna wersja
+    image: mongo:6.0
     container_name: mongodb
     ports:
       - "27017:27017"
     volumes:
-      - mongo_data:/data/db # To sprawi, że dane przetrwają restarty Maca
+      - mongo_data:/data/db
     restart: unless-stopped
 
   ai-service:
     build:
-      context: ./ai # Zmień na nazwę folderu z Pythonem
+      context: ./tuya-ai
     container_name: python-ai
     ports:
       - "8000:8000"
@@ -20,13 +20,16 @@ services:
 
   backend:
     build:
-      context: ./backend # Zmień na nazwę folderu z Javą
+      context: ./smart-home-backend
     container_name: java-backend
     ports:
       - "8080:8080"
     environment:
-      # Nadpisujemy bazę z 'tuya' (z Dockerfile) na 'tuya_iot', w której masz prawdziwe dane
-      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/tuya_iot
+      - SPRING_DATA_MONGODB_URI=${MONGO_URI}
+      - TUYA_CLIENT_ID=${TUYA_CLIENT_ID}
+      - TUYA_CLIENT_SECRET=${TUYA_CLIENT_SECRET}
+      - TUYA_REGION=${TUYA_REGION}
+
     depends_on:
       - mongodb
       - ai-service
@@ -34,10 +37,10 @@ services:
 
   frontend:
     build:
-      context: ./frontend # Zmień na nazwę folderu z Reactem
+      context: ./tuya-frontend
     container_name: react-frontend
     ports:
-      - "3000:80" # Mac Studio wystawi to na porcie 3000, Nginx w środku słucha na 80
+      - "3000:80"
     depends_on:
       - backend
     restart: unless-stopped
