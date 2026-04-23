@@ -11,7 +11,7 @@ export const WebSocketProvider = ({ children }) => {
 
     useEffect(() => {
         const client = new Client({
-            brokerURL: 'ws://localhost:8080/ws-tuya',
+            brokerURL: 'ws://localhost:8088/ws-tuya',
             connectHeaders: {},
             debug: (str) => console.log(str),
             reconnectDelay: 5000,
@@ -19,7 +19,7 @@ export const WebSocketProvider = ({ children }) => {
             heartbeatOutgoing: 4000,
         });
 
-        client.webSocketFactory = () => new SockJS('http://localhost:8080/ws-tuya');
+        client.webSocketFactory = () => new SockJS('http://localhost:8088/ws-tuya');
 
         client.onConnect = () => {
             console.log("WebSocket (Context): Połączono!");

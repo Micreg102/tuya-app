@@ -22,7 +22,7 @@ const DeviceDetails = () => {
     const wsUpdateData = useContext(WebSocketContext);
 
     useEffect(() => {
-        axios.get(`http://localhost:8080/devices/${deviceId}`)
+        axios.get(`http://localhost:8088/devices/${deviceId}`)
             .then(res => setDevice(res.data))
             .catch(err => console.error(err));
     }, [deviceId]);
@@ -30,7 +30,7 @@ const DeviceDetails = () => {
     // Inteligentne pobieranie historii zależne od wybranego przycisku czasu
     useEffect(() => {
         setLoading(true);
-        axios.get(`http://localhost:8080/devices/${deviceId}/history/smart?range=${timeRange}`)
+        axios.get(`http://localhost:8088/devices/${deviceId}/history/smart?range=${timeRange}`)
             .then(res => {
                 const formattedData = res.data.reverse().map(item => {
                     const d = new Date(item.timestamp);
@@ -95,7 +95,7 @@ const DeviceDetails = () => {
 
     const handlePredictAI = () => {
         setAiLoading(true);
-        axios.get(`http://localhost:8080/devices/${deviceId}/predict`)
+        axios.get(`http://localhost:8088/devices/${deviceId}/predict`)
             .then(res => {
                 if (res.data.error) {
                     alert(res.data.error);
