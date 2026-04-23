@@ -99,7 +99,23 @@ public class TuyaWebSocketBridge {
                 } else if (code.contains("hum")) {
                     hum = Double.parseDouble(value);
                 } else if (code.contains("battery")) {
-                    battery = (int) Double.parseDouble(value);
+                    try {
+
+                        battery = (int) Double.parseDouble(value);
+                    } catch (NumberFormatException e) {
+
+                        log.warn("Otrzymano tekstowy status baterii: {}", value);
+                        if ("high".equalsIgnoreCase(value)) {
+                            battery = 100;
+                        } else if ("middle".equalsIgnoreCase(value) || "medium".equalsIgnoreCase(value)) {
+                            battery = 50;
+                        } else if ("low".equalsIgnoreCase(value)) {
+                            battery = 10;
+                        } else {
+                            // Jeśli przyjdzie coś zupełnie innego, ustawiamy na 0 żeby nie wysadzić bazy
+                            battery = 0;
+                        }
+                    }
                 } else if (code.contains("smoke_sensor_status") || code.contains("smoke_sensor_state")) {
                     smokeStatus = value;
                 }
