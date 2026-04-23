@@ -1,61 +1,46 @@
 version: '3.8'
 
 services:
-#  # 1. Baza Danych MongoDB
-#  mongodb:
-#    image: mongo:latest
-#    container_name: tuya-mongo
-#    ports:
-#      - "27017:27017"
-#    volumes:
-#      - mongo-data:/data/db
-#    restart: unless-stopped
-#
-#  # 2. Twój Backend w Spring Boot
-#  backend:
-#    build:
-#      context: ./tuya-connector # Zmień na nazwę folderu z backendem
-#    container_name: tuya-backend
-#    ports:
-#      - "8080:8080"
-#    depends_on:
-#      - mongodb
-#    environment:
-#      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/tuya_db
-#    restart: unless-stopped
-#
-#  # 3. Twój Frontend w React (Nginx)
-#  frontend:
-#    build:
-#      context: ./tuya-frontend # Zmień na nazwę folderu z frontendem
-#    container_name: tuya-frontend
-#    ports:
-#      - "3000:80" # Nginx wewnątrz działa na 80, na zewnątrz wystawiamy na 3000
-#    depends_on:
-#      - backend
-#    restart: unless-stopped
-#
-#volumes:
-#  mongo-data: # To sprawia, że dane w bazie nie znikną po restarcie kontenera
+  mongodb:
+    image: mongo:6.0 # Sprawdzona, stabilna wersja
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db # To sprawi, że dane przetrwają restarty Maca
+    restart: unless-stopped
 
   ai-service:
     build:
-      context: ./tuya-ai
-    container_name: tuya-ai
+      context: ./ai # Zmień na nazwę folderu z Pythonem
+    container_name: python-ai
     ports:
       - "8000:8000"
     restart: unless-stopped
 
   backend:
     build:
-      context: ./tuya-connector
-    container_name: tuya-backend
+      context: ./backend # Zmień na nazwę folderu z Javą
+    container_name: java-backend
     ports:
       - "8080:8080"
+    environment:
+      # Nadpisujemy bazę z 'tuya' (z Dockerfile) na 'tuya_iot', w której masz prawdziwe dane
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/tuya_iot
     depends_on:
       - mongodb
-      - ai-service # Wymuszamy start AI przed Javą
-    environment:
-      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/tuya
-      # Mówimy Javie, gdzie w sieci Dockerowej znajduje się Python:
-      - AI_SERVICE_URL=http://ai-service:8000/predict
+      - ai-service
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend # Zmień na nazwę folderu z Reactem
+    container_name: react-frontend
+    ports:
+      - "3000:80" # Mac Studio wystawi to na porcie 3000, Nginx w środku słucha na 80
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
