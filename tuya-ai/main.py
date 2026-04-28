@@ -24,7 +24,7 @@ def predict_temperature(data: HistoryData):
 
     # KRYTYCZNE: Prophet nie toleruje stref czasowych, musimy je usunąć z danych z Javy
     df['ds'] = df['ds'].dt.tz_localize(None)
-
+    df = df.sort_values(by='ds').reset_index(drop=True)
     # 2. Konfiguracja "Mądrego" Modelu
     # Wymuszamy szukanie cyklu dobowego. changepoint_prior_scale=0.05 pozwala mu
     # elastycznie reagować na nagłe otwarcia okien lub włączenie kaloryfera.
@@ -48,10 +48,23 @@ def predict_temperature(data: HistoryData):
     future_predictions = forecast.tail(data.predict_hours)
 
     predictions = []
+
+    # --- NOWE: "Sklejamy" wykres (Punkt zerowy) ---
+    # Bierzemy ostatni czas i temperaturę z danych historycznych
+    last_time = df['ds'].iloc[-1]
+    last_temp = df['y'].iloc[-1]
+
+    predictions.append({
+        "timestamp": last_time.isoformat(),
+        "predicted_temperature": round(last_temp, 1) # Używamy RZECZYWISTEJ wartości z czujnika!
+    })
+    # ----------------------------------------------
+
+    # Dodajemy właściwą predykcję z Propheta
     for index, row in future_predictions.iterrows():
         predictions.append({
             # Konwertujemy czas z powrotem do standardu ISO dla Reacta
-            "timestamp": row['ds'].isoformat() + "Z",
+            "timestamp": row['ds'].isoformat(),
             "predicted_temperature": round(row['yhat'], 1) # 'yhat' to matematyczna nazwa predykcji
         })
 
