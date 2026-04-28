@@ -8,64 +8,70 @@ app = FastAPI(title="Tuya Smart Prophet AI")
 class HistoryData(BaseModel):
     timestamps: list[str]
     temperatures: list[float]
+    humidities: list[float] # NOWE: Oczekujemy też wilgotności
     predict_hours: int = 12
 
 @app.post("/predict")
-def predict_temperature(data: HistoryData):
-    # Model sezonowy potrzebuje więcej danych do znalezienia cyklu (minimum np. z jednego dnia)
-    if len(data.temperatures) < 24:
-        raise HTTPException(status_code=400, detail="Zbyt mało danych dla modelu sezonowego. Zostaw serwer włączony na minimum dobę.")
+def predict_climate(data: HistoryData):
+    # Sprawdzamy, czy mamy wystarczająco dużo danych
+    if len(data.temperatures) < 24 or len(data.humidities) < 24:
+        raise HTTPException(status_code=400, detail="Zbyt mało danych. Zostaw serwer włączony na minimum dobę.")
 
-    # 1. Prophet wymaga kolumn o sztywnych nazwach: 'ds' (daty) i 'y' (wartości)
-    df = pd.DataFrame({
+    # 1. Tworzymy główny DataFrame i od razu go sortujemy
+    df_main = pd.DataFrame({
         'ds': pd.to_datetime(data.timestamps),
-        'y': data.temperatures
+        'temp': data.temperatures,
+        'hum': data.humidities
     })
 
-    # KRYTYCZNE: Prophet nie toleruje stref czasowych, musimy je usunąć z danych z Javy
-    df['ds'] = df['ds'].dt.tz_localize(None)
-    df = df.sort_values(by='ds').reset_index(drop=True)
-    # 2. Konfiguracja "Mądrego" Modelu
-    # Wymuszamy szukanie cyklu dobowego. changepoint_prior_scale=0.05 pozwala mu
-    # elastycznie reagować na nagłe otwarcia okien lub włączenie kaloryfera.
-    model = Prophet(
-        yearly_seasonality=False,
-        weekly_seasonality=False,
-        daily_seasonality=True,
-        changepoint_prior_scale=0.05
-    )
+    # Usuwamy strefy czasowe i sortujemy chronologicznie
+    df_main['ds'] = df_main['ds'].dt.tz_localize(None)
+    df_main = df_main.sort_values(by='ds').reset_index(drop=True)
 
-    # 3. Trening na podstawie danych z MongoDB
-    model.fit(df)
+    # 2. Przygotowujemy osobne dane dla Propheta (wymaga kolumn 'ds' i 'y')
+    df_temp = pd.DataFrame({'ds': df_main['ds'], 'y': df_main['temp']})
+    df_hum = pd.DataFrame({'ds': df_main['ds'], 'y': df_main['hum']})
 
-    # 4. Prosimy AI o wygenerowanie pustej osi czasu na kolejne 12 godzin (freq='h')
-    future = model.make_future_dataframe(periods=data.predict_hours, freq='h')
+    # 3. Konfiguracja i trening modelu dla TEMPERATURY
+    model_temp = Prophet(yearly_seasonality=False, weekly_seasonality=False, daily_seasonality=True, changepoint_prior_scale=0.05)
+    model_temp.fit(df_temp)
 
-    # 5. Właściwa predykcja - model wypełnia pustą oś czasu
-    forecast = model.predict(future)
+    # 4. Konfiguracja i trening modelu dla WILGOTNOŚCI
+    # Wilgotność bywa bardziej "szarpana" przy otwieraniu okien, więc możemy użyć tych samych parametrów
+    model_hum = Prophet(yearly_seasonality=False, weekly_seasonality=False, daily_seasonality=True, changepoint_prior_scale=0.05)
+    model_hum.fit(df_hum)
 
-    # 6. Prophet zwraca całą historię + predykcję. My wyciągamy tylko te X nowych godzin z końca.
-    future_predictions = forecast.tail(data.predict_hours)
+    # 5. Generujemy pustą oś czasu na przyszłość (tylko raz, bo czas jest ten sam dla obu)
+    future = model_temp.make_future_dataframe(periods=data.predict_hours, freq='h')
+
+    # 6. Wykonujemy predykcję dla obu parametrów
+    forecast_temp = model_temp.predict(future)
+    forecast_hum = model_hum.predict(future)
+
+    # 7. Wyciągamy same nowe godziny z końca
+    future_predictions_temp = forecast_temp.tail(data.predict_hours)
+    future_predictions_hum = forecast_hum.tail(data.predict_hours)
 
     predictions = []
 
-    # --- NOWE: "Sklejamy" wykres (Punkt zerowy) ---
-    # Bierzemy ostatni czas i temperaturę z danych historycznych
-    last_time = df['ds'].iloc[-1]
-    last_temp = df['y'].iloc[-1]
+    # --- Sklejamy wykres (Punkt zerowy z prawdziwych danych) ---
+    last_time = df_main['ds'].iloc[-1]
+    last_temp = df_main['temp'].iloc[-1]
+    last_hum = df_main['hum'].iloc[-1]
 
     predictions.append({
         "timestamp": last_time.isoformat(),
-        "predicted_temperature": round(last_temp, 1) # Używamy RZECZYWISTEJ wartości z czujnika!
+        "predicted_temperature": round(last_temp, 1),
+        "predicted_humidity": round(last_hum, 1) # Dorzucamy punkt zerowy wilgotności
     })
-    # ----------------------------------------------
 
-    # Dodajemy właściwą predykcję z Propheta
-    for index, row in future_predictions.iterrows():
+    # --- Składamy właściwą predykcję z obu modeli do jednego JSON-a ---
+    # Używamy zip(), żeby iterować po obu wynikach predykcji jednocześnie
+    for (index, row_temp), (_, row_hum) in zip(future_predictions_temp.iterrows(), future_predictions_hum.iterrows()):
         predictions.append({
-            # Konwertujemy czas z powrotem do standardu ISO dla Reacta
-            "timestamp": row['ds'].isoformat(),
-            "predicted_temperature": round(row['yhat'], 1) # 'yhat' to matematyczna nazwa predykcji
+            "timestamp": row_temp['ds'].isoformat(),
+            "predicted_temperature": round(row_temp['yhat'], 1),
+            "predicted_humidity": round(row_hum['yhat'], 1)
         })
 
     return {"predictions": predictions}

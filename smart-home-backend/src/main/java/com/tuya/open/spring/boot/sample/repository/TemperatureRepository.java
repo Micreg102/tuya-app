@@ -28,7 +28,11 @@ public interface TemperatureRepository extends MongoRepository<TemperatureRecord
                 // Zachowujemy pole timestamp, żeby Twój React nie zwariował i wiedział, o której to było
                 "'timestamp': { '$first': '$timestamp' } " +
                 "} }",
-
+        "{ '$addFields': { " +
+                "'temperature': { '$round': ['$temperature', 1] }, " + // 1 miejsce po przecinku
+                "'humidity': { '$round': ['$humidity', 1] }, " +       // 1 miejsce po przecinku
+                "'battery': { '$round': ['$battery', 0] } " +          // 0 miejsc, bo battery to Integer
+                "} }",
         // 3. Posortuj malejąco po czasie (tak jak oczekuje tego Frontend)
         "{ '$sort': { 'timestamp': -1 } }"
 })

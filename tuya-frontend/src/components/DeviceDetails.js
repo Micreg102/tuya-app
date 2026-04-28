@@ -107,7 +107,8 @@ const DeviceDetails = () => {
                         timestamp: p.timestamp,
                         timeMs: d.getTime(),
                         displayX: `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-                        predicted_temperature: p.predicted_temperature
+                        predicted_temperature: p.predicted_temperature,
+                        predicted_humidity: p.predicted_humidity
                     };
                 });
                 setAiPredictions(formattedPredictions);
@@ -167,8 +168,14 @@ const DeviceDetails = () => {
                                 {!isSmokeSensor && (
                                     <button
                                         onClick={handlePredictAI}
-                                        disabled={aiLoading}
-                                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md shadow-indigo-500/30 disabled:opacity-50"
+
+                                        disabled={aiLoading || timeRange !== 'today'}
+                                        className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md
+                                       ${timeRange !== 'today'
+                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' // Wygląd zablokowanego przycisku
+                                            : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/30' // Normalny wygląd
+                                        } ${aiLoading ? 'opacity-50' : ''}`}
+                                        title={timeRange !== 'today' ? "Predykcja dostępna tylko w widoku 'Dzisiaj'" : "Uruchom predykcję"}
                                     >
                                         {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                                         Prognoza AI
@@ -180,7 +187,10 @@ const DeviceDetails = () => {
                                     {['today', 'month', 'year', 'all'].map((range) => (
                                         <button
                                             key={range}
-                                            onClick={() => setTimeRange(range)}
+                                            onClick={() => {
+                                                setTimeRange(range);
+                                                setAiPredictions([]);
+                                            }}
                                             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                                                 timeRange === range ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'
                                             }`}
@@ -235,7 +245,15 @@ const DeviceDetails = () => {
 
                                         {/* PREDYKCJA AI - Zmieniono na ciągłą linię (brak strokeDasharray) i pogrubiono dla lepszej widoczności */}
                                         <Line yAxisId="left" type="monotone" dataKey="predicted_temperature" name="Prognoza AI (°C)" stroke="#f59e0b" strokeWidth={2} dot={{r: 1}} connectNulls={false} />
-
+                                        <Line
+                                            type="monotone"
+                                            dataKey="predicted_humidity"
+                                            stroke="#2196f3" /* Kolor niebieski, dopasuj do swojej palety */
+                                            strokeDasharray="5 5" /* Przerywana linia - super wygląda dla prognoz! */
+                                            name="Prognoza Wilgotności AI (%)"
+                                            dot={false}
+                                            yAxisId="right" /* Jeśli używasz osobnej osi Y dla wilgotności po prawej stronie */
+                                        />
                                         <Line yAxisId="right" type="monotone" dataKey="humidity" name="Wilgotność (%)" stroke="#3b82f6" strokeWidth={3} dot={false} connectNulls={false} />
                                         <Line yAxisId="right" type="stepAfter" dataKey="battery" name="Bateria (%)" stroke="#10b981" strokeWidth={2} strokeDasharray="4 4" dot={false} connectNulls={true} />
                                     </LineChart>

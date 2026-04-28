@@ -60,12 +60,13 @@ public class DeviceService {
 
         List<String> timestamps = new ArrayList<>();
         List<Double> temperatures = new ArrayList<>();
-
+        List<Double> humidities = new ArrayList<>();
         // 3. Filtrujemy tylko prawidłowe odczyty
         for (TemperatureRecord record : history) {
             if (record.getTemperature() != null && record.getTimestamp() != null) {
                 timestamps.add(record.getTimestamp().toString());
                 temperatures.add(record.getTemperature());
+                humidities.add(record.getHumidity());
             }
         }
 
@@ -78,6 +79,7 @@ public class DeviceService {
         Map<String, Object> pythonRequest = new HashMap<>();
         pythonRequest.put("timestamps", timestamps);
         pythonRequest.put("temperatures", temperatures);
+        pythonRequest.put("humidities", humidities);
         pythonRequest.put("predict_hours", 12);
 
         // 5. Wysyłamy HTTP POST do Pythona
