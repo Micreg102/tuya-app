@@ -27,7 +27,7 @@ const DeviceCard = ({ deviceId, initialData }) => {
     // PIERWSZY useEffect: Pobranie danych startowych po HTTP (tylko raz)
     useEffect(() => {
         if (!initialData && !deviceId.startsWith('test-sim')) {
-            axios.get(`http://localhost:8088/devices/${deviceId}`)
+            axios.get(`http://localhost:8080/devices/${deviceId}`)
                 .then(res => setData(res.data))
                 .catch(err => console.error("Błąd pobierania urządzenia:", err));
         }

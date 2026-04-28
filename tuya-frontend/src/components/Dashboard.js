@@ -18,7 +18,7 @@ const Dashboard = () => {
             const ids = devicesConfig.deviceIds;
             try {
                 const requests = ids.map(id =>
-                    axios.get(`http://localhost:8088/devices/${id}`)
+                    axios.get(`http://localhost:8080/devices/${id}`)
                         .then(res => res.data)
                         .catch(err => null)
                 );

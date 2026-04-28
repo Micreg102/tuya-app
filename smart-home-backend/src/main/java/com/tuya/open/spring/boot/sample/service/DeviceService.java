@@ -83,7 +83,7 @@ public class DeviceService {
         // 5. Wysyłamy HTTP POST do Pythona
         RestTemplate restTemplate = new RestTemplate();
         try {
-            return restTemplate.postForObject("http://ai-service:8000/predict", pythonRequest, Map.class);
+            return restTemplate.postForObject("http://localhost:8000/predict", pythonRequest, Map.class);
         } catch (Exception e) {
             throw new RuntimeException("Nie można połączyć się z serwerem AI: " + e.getMessage());
         }

@@ -19,7 +19,7 @@ export const WebSocketProvider = ({ children }) => {
             heartbeatOutgoing: 4000,
         });
 
-        client.webSocketFactory = () => new SockJS('http://localhost:8088/ws-tuya');
+        client.webSocketFactory = () => new SockJS('http://localhost:8080/ws-tuya');
 
         client.onConnect = () => {
             console.log("WebSocket (Context): Połączono!");
