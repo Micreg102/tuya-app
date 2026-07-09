@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   mongodb:
     image: mongo:6.0
@@ -9,7 +8,6 @@ services:
     volumes:
       - mongo_data:/data/db
     restart: unless-stopped
-
   ai-service:
     build:
       context: ./tuya-ai
@@ -17,7 +15,6 @@ services:
     ports:
       - "8000:8000"
     restart: unless-stopped
-
   backend:
     build:
       context: ./smart-home-backend
@@ -29,12 +26,10 @@ services:
       - TUYA_ACCESS_ID=${TUYA_CLIENT_ID}
       - TUYA_ACCESS_SECRET=${TUYA_CLIENT_SECRET}
       - TUYA_REGION=${TUYA_REGION}
-
     depends_on:
       - mongodb
       - ai-service
     restart: unless-stopped
-
   frontend:
     build:
       context: ./tuya-frontend
@@ -44,6 +39,5 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
-
 volumes:
   mongo_data:

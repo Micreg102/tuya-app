@@ -9,7 +9,7 @@ db = client["tuya_iot"]
 collection = db["temperature_history"]
 
 # Twój konkretny czujnik w salonie
-device_id = "bf725076682667c134lh1i"
+device_id = "bf50c7454f57e344780une"
 
 print("Czyszczenie starej historii...")
 collection.delete_many({"deviceId": device_id})

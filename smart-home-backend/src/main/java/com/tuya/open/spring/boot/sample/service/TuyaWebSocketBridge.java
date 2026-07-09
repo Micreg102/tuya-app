@@ -25,23 +25,17 @@ public class TuyaWebSocketBridge {
 
     @EventListener
     public void handleTuyaEvent(BaseTuyaMessage event) {
-        // 1. Obsługa komunikatów technicznych (np. bicie serca)
         if ("unknown".equals(event.type())) {
             if (event instanceof UnknownMessage) {
                 UnknownMessage unknown = (UnknownMessage) event;
                 if (unknown.getBizData() == null) {
-                    log.debug(">>> BRIDGE: Odebrano Heartbeat/Ping dla: {}", event.getDevId());
+                    log.debug("BRIDGE: Odebrano Heartbeat/Ping dla: {}", event.getDevId());
                 }
             }
             return;
         }
-
-        log.info(">>> BRIDGE: Odebrano event [{}] dla urządzenia: {}", event.type(), event.getDevId());
-
-        // 2. Przesłanie danych do Frontendu (React) przez WebSocket
+        log.info("BRIDGE: Odebrano event [{}] dla urządzenia: {}", event.type(), event.getDevId());
         messagingTemplate.convertAndSend("/topic/device-updates", event);
-
-        // 3. Przetwarzanie i zapis do bazy danych (MongoDB)
         if (event instanceof StatusReportMessage) {
             handleStatusReport((StatusReportMessage) event);
         } else if (event instanceof DevicePropertyMessage) {
@@ -91,7 +85,11 @@ public class TuyaWebSocketBridge {
             for (DevicePropertyMessage.PropertyItem item : event.getProperties()) {
                 String code = item.getCode().toLowerCase();
                 String value = item.getValue().toString();
+                long tuyaTimestamp = item.getTime();
+                long backendReceivedTimestamp = System.currentTimeMillis();
+                long cloudToBackendLatency = backendReceivedTimestamp - tuyaTimestamp;
 
+                log.info("POMIAR [{}]: Opóźnienie Tuya Cloud -> Backend: {} ms", code, cloudToBackendLatency);
                 log.debug("    Analiza Property: {} | Wartosc: {}", code, value);
 
                 if (code.contains("temp")) {
@@ -100,7 +98,6 @@ public class TuyaWebSocketBridge {
                     hum = Double.parseDouble(value);
                 } else if (code.contains("battery")) {
                     try {
-
                         battery = (int) Double.parseDouble(value);
                     } catch (NumberFormatException e) {
 
@@ -112,7 +109,6 @@ public class TuyaWebSocketBridge {
                         } else if ("low".equalsIgnoreCase(value)) {
                             battery = 10;
                         } else {
-                            // Jeśli przyjdzie coś zupełnie innego, ustawiamy na 0 żeby nie wysadzić bazy
                             battery = 0;
                         }
                     }
@@ -142,11 +138,10 @@ public class TuyaWebSocketBridge {
                     .build();
 
             temperatureRepository.save(record);
-
-            log.info(">>> MONGO: Sukces! Zapisano dane dla {}: T: {}°C | H: {}% | B: {}% | S: {}",
+            log.info("MONGO: Sukces Zapisano dane dla {}: T: {}°C | H: {}% | B: {}% | S: {}",
                     deviceId, temp, hum, battery, smokeStatus);
         } catch (Exception e) {
-            log.error(">>> MONGO BŁĄD: Nie udało się zapisać rekordu dla {}: {}", deviceId, e.getMessage());
+            log.error("MONGO BŁĄD: Nie udało się zapisać rekordu dla {}: {}", deviceId, e.getMessage());
         }
     }
 }

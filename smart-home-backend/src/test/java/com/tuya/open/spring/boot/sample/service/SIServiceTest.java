@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.HashMap;
@@ -14,15 +15,15 @@ import java.util.Map;
 @SpringBootTest
 class SIServiceTest {
 
-    @InjectMocks
+    @Autowired
     SIService siService;
 
-    String deviceId = "6c8561a54bf607698f2sgw";
+    String deviceId = "bf664631bc3ce505d2axeg";
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
+//    @BeforeEach
+//    void setUp() {
+//        MockitoAnnotations.openMocks(this);
+//    }
 
     @Test
     void fastjson_test() {

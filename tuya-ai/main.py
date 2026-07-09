@@ -32,23 +32,15 @@ def predict_climate(data: HistoryData):
     df_temp = pd.DataFrame({'ds': df_main['ds'], 'y': df_main['temp']})
     df_hum = pd.DataFrame({'ds': df_main['ds'], 'y': df_main['hum']})
 
-    # 3. Konfiguracja i trening modelu dla TEMPERATURY
     model_temp = Prophet(yearly_seasonality=False, weekly_seasonality=False, daily_seasonality=True, changepoint_prior_scale=0.05)
     model_temp.fit(df_temp)
 
-    # 4. Konfiguracja i trening modelu dla WILGOTNOŚCI
-    # Wilgotność bywa bardziej "szarpana" przy otwieraniu okien, więc możemy użyć tych samych parametrów
     model_hum = Prophet(yearly_seasonality=False, weekly_seasonality=False, daily_seasonality=True, changepoint_prior_scale=0.05)
     model_hum.fit(df_hum)
-
-    # 5. Generujemy pustą oś czasu na przyszłość (tylko raz, bo czas jest ten sam dla obu)
     future = model_temp.make_future_dataframe(periods=data.predict_hours, freq='h')
-
-    # 6. Wykonujemy predykcję dla obu parametrów
     forecast_temp = model_temp.predict(future)
     forecast_hum = model_hum.predict(future)
 
-    # 7. Wyciągamy same nowe godziny z końca
     future_predictions_temp = forecast_temp.tail(data.predict_hours)
     future_predictions_hum = forecast_hum.tail(data.predict_hours)
 
