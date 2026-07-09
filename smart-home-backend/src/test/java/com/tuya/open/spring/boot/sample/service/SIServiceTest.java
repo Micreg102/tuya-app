@@ -20,11 +20,6 @@ class SIServiceTest {
 
     String deviceId = "bf664631bc3ce505d2axeg";
 
-//    @BeforeEach
-//    void setUp() {
-//        MockitoAnnotations.openMocks(this);
-//    }
-
     @Test
     void fastjson_test() {
         Map<String, Object> m =new HashMap<>();

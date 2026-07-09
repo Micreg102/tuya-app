@@ -3,14 +3,12 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import DeviceCard from './DeviceCard';
 import devicesConfig from '../devices.json';
-import { Thermometer, Flame, Grid, Loader2, Bug } from 'lucide-react'; // Dodałem ikonę Bug dla testu
+import { Thermometer, Flame, Grid, Loader2, Bug } from 'lucide-react';
 
 const Dashboard = () => {
     const [devices, setDevices] = useState([]);
-    const [activeTab, setActiveTab] = useState('temp'); // Domyślnie dym, żebyś od razu widział efekt
+    const [activeTab, setActiveTab] = useState('temp');
     const [loading, setLoading] = useState(true);
-
-    // NOWY STAN: Tryb testowy
     const [testMode, setTestMode] = useState(false);
 
     useEffect(() => {
@@ -18,7 +16,7 @@ const Dashboard = () => {
             const ids = devicesConfig.deviceIds;
             try {
                 const requests = ids.map(id =>
-                    axios.get(`http://localhost:8080/devices/${id}`)
+                    axios.get(`/devices/${id}`)
                         .then(res => res.data)
                         .catch(err => null)
                 );
@@ -35,22 +33,20 @@ const Dashboard = () => {
         fetchAllDevicesDetails();
     }, []);
 
-    // --- DEFINICJA FAŁSZYWEGO CZUJNIKA ---
     const testDevice = {
-        id: 'test-sim-001', // Specjalne ID
+        id: 'test-sim-001',
         name: 'TEST: KUCHNIA',
         category: 'sensor',
         productName: 'Symulator Pożaru',
         online: true,
         status: [
-            { code: 'smoke_sensor_status', value: 'alarm' }, // Kluczowe: ALARM
+            { code: 'smoke_sensor_status', value: 'alarm' },
             { code: 'battery_percentage', value: 88 }
         ]
     };
 
     const tempDevices = devices.filter(d => d.category === 'wsdcg');
 
-    // Tutaj dodajemy logikę: Jeśli testMode jest ON, dodaj testDevice do listy dymu
     let smokeDevices = devices.filter(d => d.category === 'sensor' || d.category === 'cs' || d.productName?.toLowerCase().includes('smoke'));
     if (testMode) {
         smokeDevices = [testDevice, ...smokeDevices];
@@ -72,7 +68,6 @@ const Dashboard = () => {
 
     return (
         <div className="p-4 bg-gray-50 min-h-screen">
-            {/* PRZYCISK TESTOWY */}
             <div className="flex justify-center mb-4">
                 <button
                     onClick={() => { setTestMode(!testMode); setActiveTab('smoke'); }}
@@ -85,7 +80,6 @@ const Dashboard = () => {
                 </button>
             </div>
 
-            {/* ZAKŁADKI */}
             <div className="flex justify-center gap-2 mb-6 border-b border-gray-200 pb-3">
                 {[
                     { id: 'temp', label: 'Temp.', icon: Thermometer, count: tempDevices.length },
@@ -106,7 +100,6 @@ const Dashboard = () => {
                 ))}
             </div>
 
-            {/* SIATKA URZĄDZEŃ - DUŻO WIĘCEJ KOLUMN = MNIEJSZE KARTY */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 max-w-7xl mx-auto">
                 {currentList.length > 0 ? (
                     currentList.map(device => (

@@ -43,9 +43,6 @@ public class TuyaWebSocketBridge {
         }
     }
 
-    /**
-     * Obsługa starszego formatu raportów statusu
-     */
     private void handleStatusReport(StatusReportMessage event) {
         Double temp = null;
         Double hum = null;
@@ -72,9 +69,6 @@ public class TuyaWebSocketBridge {
         }
     }
 
-    /**
-     * Obsługa nowego formatu (Property) - najczęściej używany przez nowe czujniki
-     */
     private void handlePropertyMessage(DevicePropertyMessage event) {
         Double temp = null;
         Double hum = null;
@@ -123,9 +117,6 @@ public class TuyaWebSocketBridge {
         }
     }
 
-    /**
-     * Zapis rekordu do MongoDB
-     */
     private void saveRecord(String deviceId, Double temp, Double hum, Integer battery, String smokeStatus) {
         try {
             TemperatureRecord record = TemperatureRecord.builder()

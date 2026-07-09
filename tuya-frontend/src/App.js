@@ -2,12 +2,12 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import DeviceDetails from './components/DeviceDetails';
-import { WebSocketProvider } from './WebSocketContext'; // <--- IMPORT
+import { WebSocketProvider } from './WebSocketContext';
 import './App.css';
 
 function App() {
     return (
-        <WebSocketProvider> {/* <--- OWINIEĘCIE APLIKACJI */}
+        <WebSocketProvider>
             <Router>
                 <div className="app-container">
                     <Routes>

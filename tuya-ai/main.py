@@ -8,27 +8,23 @@ app = FastAPI(title="Tuya Smart Prophet AI")
 class HistoryData(BaseModel):
     timestamps: list[str]
     temperatures: list[float]
-    humidities: list[float] # NOWE: Oczekujemy też wilgotności
+    humidities: list[float]
     predict_hours: int = 12
 
 @app.post("/predict")
 def predict_climate(data: HistoryData):
-    # Sprawdzamy, czy mamy wystarczająco dużo danych
     if len(data.temperatures) < 24 or len(data.humidities) < 24:
         raise HTTPException(status_code=400, detail="Zbyt mało danych. Zostaw serwer włączony na minimum dobę.")
 
-    # 1. Tworzymy główny DataFrame i od razu go sortujemy
     df_main = pd.DataFrame({
         'ds': pd.to_datetime(data.timestamps),
         'temp': data.temperatures,
         'hum': data.humidities
     })
 
-    # Usuwamy strefy czasowe i sortujemy chronologicznie
     df_main['ds'] = df_main['ds'].dt.tz_localize(None)
     df_main = df_main.sort_values(by='ds').reset_index(drop=True)
 
-    # 2. Przygotowujemy osobne dane dla Propheta (wymaga kolumn 'ds' i 'y')
     df_temp = pd.DataFrame({'ds': df_main['ds'], 'y': df_main['temp']})
     df_hum = pd.DataFrame({'ds': df_main['ds'], 'y': df_main['hum']})
 
@@ -46,7 +42,6 @@ def predict_climate(data: HistoryData):
 
     predictions = []
 
-    # --- Sklejamy wykres (Punkt zerowy z prawdziwych danych) ---
     last_time = df_main['ds'].iloc[-1]
     last_temp = df_main['temp'].iloc[-1]
     last_hum = df_main['hum'].iloc[-1]
@@ -54,11 +49,9 @@ def predict_climate(data: HistoryData):
     predictions.append({
         "timestamp": last_time.isoformat(),
         "predicted_temperature": round(last_temp, 1),
-        "predicted_humidity": round(last_hum, 1) # Dorzucamy punkt zerowy wilgotności
+        "predicted_humidity": round(last_hum, 1)
     })
 
-    # --- Składamy właściwą predykcję z obu modeli do jednego JSON-a ---
-    # Używamy zip(), żeby iterować po obu wynikach predykcji jednocześnie
     for (index, row_temp), (_, row_hum) in zip(future_predictions_temp.iterrows(), future_predictions_hum.iterrows()):
         predictions.append({
             "timestamp": row_temp['ds'].isoformat(),

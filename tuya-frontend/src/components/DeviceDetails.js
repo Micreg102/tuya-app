@@ -12,25 +12,22 @@ const DeviceDetails = () => {
     const [device, setDevice] = useState(null);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
-    // Domyślny filtr to dzisiaj
     const [timeRange, setTimeRange] = useState('today');
 
-    // Stany dla AI
     const [aiPredictions, setAiPredictions] = useState([]);
     const [aiLoading, setAiLoading] = useState(false);
 
     const wsUpdateData = useContext(WebSocketContext);
 
     useEffect(() => {
-        axios.get(`http://localhost:8080/devices/${deviceId}`)
+        axios.get(`/devices/${deviceId}`)
             .then(res => setDevice(res.data))
             .catch(err => console.error(err));
     }, [deviceId]);
 
-    // Inteligentne pobieranie historii zależne od wybranego przycisku czasu
     useEffect(() => {
         setLoading(true);
-        axios.get(`http://localhost:8080/devices/${deviceId}/history/smart?range=${timeRange}`)
+        axios.get(`/devices/${deviceId}/history/smart?range=${timeRange}`)
             .then(res => {
                 const formattedData = res.data.reverse().map(item => {
                     const d = new Date(item.timestamp);
@@ -95,7 +92,7 @@ const DeviceDetails = () => {
 
     const handlePredictAI = () => {
         setAiLoading(true);
-        axios.get(`http://localhost:8080/devices/${deviceId}/predict`)
+        axios.get(`/devices/${deviceId}/predict`)
             .then(res => {
                 if (res.data.error) {
                     alert(res.data.error);
@@ -112,7 +109,6 @@ const DeviceDetails = () => {
                     };
                 });
                 setAiPredictions(formattedPredictions);
-                // USUNIĘTO: setTimeRange('all'); - teraz filtr zostaje taki, jaki był wybrany
             })
             .catch(err => {
                 console.error("Błąd AI:", err);
@@ -124,25 +120,6 @@ const DeviceDetails = () => {
     if (loading || !device) return <div className="loading flex justify-center items-center h-screen">Ładowanie...</div>;
 
     const isSmokeSensor = device.category === 'sensor' || device.category === 'cs';
-
-    // Logika filtrów z MIESIĄCEM zamiast tygodnia
-    // const filteredHistory = history.filter(item => {
-    //     const itemTime = new Date(item.timestamp).getTime();
-    //     const now = new Date();
-    //     if (timeRange === 'today') return itemTime >= new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    //     if (timeRange === 'month') return itemTime >= new Date(now.setMonth(now.getMonth() - 1)).getTime(); // Zmieniono na MIESIĄC
-    //     if (timeRange === 'year') return itemTime >= new Date(now.setFullYear(now.getFullYear() - 1)).getTime();
-    //     return true;
-    // }).map(item => {
-    //     const d = new Date(item.timestamp);
-    //     let displayX = '';
-    //     if (timeRange === 'today') {
-    //         displayX = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    //     } else {
-    //         displayX = `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    //     }
-    //     return { ...item, displayX };
-    // });
 
     const chartData = [...history, ...aiPredictions];
 
@@ -172,8 +149,8 @@ const DeviceDetails = () => {
                                         disabled={aiLoading || timeRange !== 'today'}
                                         className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md
                                        ${timeRange !== 'today'
-                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' // Wygląd zablokowanego przycisku
-                                            : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/30' // Normalny wygląd
+                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                                            : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/30'
                                         } ${aiLoading ? 'opacity-50' : ''}`}
                                         title={timeRange !== 'today' ? "Predykcja dostępna tylko w widoku 'Dzisiaj'" : "Uruchom predykcję"}
                                     >
@@ -183,7 +160,6 @@ const DeviceDetails = () => {
                                 )}
 
                                 <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
-                                    {/* Podmiana przycisków na widoku */}
                                     {['today', 'month', 'year', 'all'].map((range) => (
                                         <button
                                             key={range}
@@ -222,10 +198,9 @@ const DeviceDetails = () => {
                                             domain={['dataMin', 'dataMax']}
                                             stroke="#cbd5e1"
                                             fontSize={11}
-                                            minTickGap={40} // Zwiększyłem odstęp, żeby data i godzina się nie zderzały
+                                            minTickGap={40}
                                             tickFormatter={(unixTime) => {
                                                 const d = new Date(unixTime);
-                                                // Zawsze zwracamy pełny format: DD.MM HH:mm
                                                 return `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
                                             }}
                                         />
@@ -243,16 +218,15 @@ const DeviceDetails = () => {
 
                                         <Line yAxisId="left" type="monotone" dataKey="temperature" name="Temp Historyczna (°C)" stroke="#ef4444" strokeWidth={3} dot={false} connectNulls={false} />
 
-                                        {/* PREDYKCJA AI - Zmieniono na ciągłą linię (brak strokeDasharray) i pogrubiono dla lepszej widoczności */}
                                         <Line yAxisId="left" type="monotone" dataKey="predicted_temperature" name="Prognoza AI (°C)" stroke="#f59e0b" strokeWidth={2} dot={{r: 1}} connectNulls={false} />
                                         <Line
                                             type="monotone"
                                             dataKey="predicted_humidity"
-                                            stroke="#2196f3" /* Kolor niebieski, dopasuj do swojej palety */
-                                            strokeDasharray="5 5" /* Przerywana linia - super wygląda dla prognoz! */
+                                            stroke="#2196f3"
+                                            strokeDasharray="5 5"
                                             name="Prognoza Wilgotności AI (%)"
                                             dot={false}
-                                            yAxisId="right" /* Jeśli używasz osobnej osi Y dla wilgotności po prawej stronie */
+                                            yAxisId="right"
                                         />
                                         <Line yAxisId="right" type="monotone" dataKey="humidity" name="Wilgotność (%)" stroke="#3b82f6" strokeWidth={3} dot={false} connectNulls={false} />
                                         <Line yAxisId="right" type="stepAfter" dataKey="battery" name="Bateria (%)" stroke="#10b981" strokeWidth={2} strokeDasharray="4 4" dot={false} connectNulls={true} />
